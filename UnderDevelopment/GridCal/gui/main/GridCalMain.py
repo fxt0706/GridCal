@@ -605,6 +605,7 @@ class MainGUI(QMainWindow):
             self.grid_editor.diagramView.fitInView(self.grid_editor.diagramScene.sceneRect(), Qt.KeepAspectRatio)
             self.grid_editor.diagramView.scale(1.0, 1.0)
 
+
     def new_project(self):
         """
         Create new grid
@@ -906,6 +907,8 @@ class MainGUI(QMainWindow):
         Run a power flow simulation
         :return:
         """
+
+        print("Message: Run Power FLow in GridCalMain run _power_flow line 911")
         if len(self.circuit.buses) > 0:
             self.LOCK()
 

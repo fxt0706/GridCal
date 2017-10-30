@@ -985,8 +985,9 @@ class BatteryGraphicItem(QGraphicsItemGroup):
         self.diagramScene.parent().object_editor_table.setModel(mdl)
 
 
-class BusGraphicItem(QGraphicsRectItem, GeneralItem):
+class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
     """
+      Replace QGraphicsEllipseItem to QGraphicsRectItem to change Ellipse
       Represents a block in the diagram
       Has an x and y and width and height
       width and height can only be adjusted with a tip in the lower right corner.
@@ -1007,8 +1008,10 @@ class BusGraphicItem(QGraphicsRectItem, GeneralItem):
         """
         super(BusGraphicItem, self).__init__(parent)
 
-        self.w = 60.0
-        self.h = 60.0
+        print("Message: create item in view GridEditorWidget Class BusGraphicItem line 1010")
+
+        self.w = 65.0
+        self.h = 65.0
 
         self.api_object = bus
 
@@ -1023,7 +1026,7 @@ class BusGraphicItem(QGraphicsRectItem, GeneralItem):
         self.pen_width = 4
         # Properties of the rectangle:
         self.setPen(QPen(QtCore.Qt.black, self.pen_width))
-        self.setBrush(QBrush(QtCore.Qt.black))
+        self.setBrush(QBrush(QtCore.Qt.white))
         self.setFlags(self.ItemIsSelectable | self.ItemIsMovable)
         self.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
 
@@ -1038,7 +1041,7 @@ class BusGraphicItem(QGraphicsRectItem, GeneralItem):
         self.label.setDefaultTextColor(QtCore.Qt.white)
 
         # Create corner for resize:
-        self.sizer = HandleItem(self)
+        self.sizer = HandleItem(self)  # HandleItem set the point red
         self.sizer.setPos(self.w, self.h)
         self.sizer.posChangeCallbacks.append(self.change_size)  # Connect the callback
 
@@ -1057,7 +1060,7 @@ class BusGraphicItem(QGraphicsRectItem, GeneralItem):
         self.terminals = self.upper_terminals + self.lower_terminals + self.right_terminals + self.left_terminals
 
         # Update size:
-        self.change_size(self.w, self.h)
+        self.change_size(self.w, self.h) #set pos by change_size
 
     def change_size(self, w, h):
         """
@@ -1067,6 +1070,11 @@ class BusGraphicItem(QGraphicsRectItem, GeneralItem):
         @return:
         """
         # Limit the block size to the minimum size:
+        if h > w:
+            w = h
+        else:
+            h = w
+
         if h < self.h:
             h = self.h
         if w < self.w:
@@ -1404,6 +1412,8 @@ class EditorGraphicsView(QGraphicsView):
         @param event:
         @return:
         """
+        print("dragEnterEvent GirdEditorWidget line 1407")
+        print(self)
         if event.mimeData().hasFormat('component/name'):
             event.accept()
 
@@ -1413,6 +1423,7 @@ class EditorGraphicsView(QGraphicsView):
         @param event:
         @return:
         """
+
         if event.mimeData().hasFormat('component/name'):
             event.accept()
 
@@ -1422,6 +1433,7 @@ class EditorGraphicsView(QGraphicsView):
         @param event:
         @return:
         """
+
         if event.mimeData().hasFormat('component/name'):
             objtype = event.mimeData().data('component/name')
             # name = str(objtype)
@@ -1433,10 +1445,11 @@ class EditorGraphicsView(QGraphicsView):
             stream = QDataStream(data, QIODevice.WriteOnly)
             stream.writeQString('Bus')
             if objtype == data:
+                print("Message: create new bus in dropEvent GridEditorWidget Class EditorGraphicsView")
                 name = 'Bus ' + str(self.last_n)
                 self.last_n += 1
                 obj = Bus(name=name)
-                elm = BusGraphicItem(diagramScene=self.scene(), name=name, editor=self.editor, bus=obj)
+                elm = BusGraphicItem(diagramScene=self.scene(), name=name, editor=self.editor, bus=obj) #BusGraphicItem set the item
                 obj.graphic_obj = elm
                 self.scene_.circuit.add_bus(obj)  # weird but only way to have graphical-API communication
 
@@ -1547,14 +1560,17 @@ class ObjectFactory(object):
 
         @return:
         """
+        print("get_box draw the icon GridEditorWIdget Class ObjectFactory line 1556")
         pixmap = QPixmap(40, 40)
         pixmap.fill()
         painter = QPainter(pixmap)
         painter.fillRect(0, 0, 40, 40, Qt.black)
-        # painter.setBrush(Qt.red)
-        # painter.drawEllipse(36, 2, 20, 20)
+        # painter.setBrush(Qt.black)
+        # painter.drawEllipse(5, 5, 30, 30)
+        # painter.setBrush(Qt.white)
+        # painter.drawEllipse(8 ,8, 24, 24)
         # painter.setBrush(Qt.yellow)
-        # painter.drawEllipse(20, 20, 20, 20)
+        #painter.drawEllipse(20, 20, 20, 20)
         painter.end()
 
         return QIcon(pixmap)
@@ -1564,14 +1580,14 @@ class ObjectFactory(object):
 
         @return:
         """
+        print("get_circle draw the icon GridEditorWIdget Class ObjectFactory line 1556")
         pixmap = QPixmap(40, 40)
         pixmap.fill()
         painter = QPainter(pixmap)
-        # painter.fillRect(10, 10, 80, 80, Qt.black)
-        painter.setBrush(Qt.red)
-        painter.drawEllipse(0, 0, 40, 40)
-        # painter.setBrush(Qt.yellow)
-        # painter.drawEllipse(20, 20, 20, 20)
+        painter.setBrush(Qt.black)
+        painter.drawEllipse(5, 5, 30, 30)
+        painter.setBrush(Qt.white)
+        painter.drawEllipse(8, 8, 24, 24)
         painter.end()
 
         return QIcon(pixmap)
@@ -1607,7 +1623,8 @@ class GridEditor(QSplitter):
 
         # initialize library of items
         self.libItems = list()
-        self.libItems.append(QStandardItem(object_factory.get_box(), 'Bus'))
+        self.libItems.append(QStandardItem(object_factory.get_circle(), 'Bus'))
+        print("create bus icon GridEditorWidget line 1617")
         for i in self.libItems:
             self.libraryModel.appendRow(i)
 
@@ -1623,6 +1640,7 @@ class GridEditor(QSplitter):
         # create all the schematic objects and replace the existing ones
         self.diagramScene = DiagramScene(self, circuit)  # scene to add to the QGraphicsView
         self.diagramView = EditorGraphicsView(self.diagramScene, parent=self, editor=self)
+        print("diagramView GridEditorWidget Class GridEditor line 1636")
 
         # create the grid name editor
         self.frame1 = QFrame()
