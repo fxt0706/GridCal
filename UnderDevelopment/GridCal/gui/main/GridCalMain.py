@@ -22,7 +22,7 @@ import os.path
 import sys
 from collections import OrderedDict
 from enum import Enum
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap, Colormap
 from multiprocessing import cpu_count
 
 __author__ = 'Santiago Peñate Vera'
@@ -157,12 +157,12 @@ class MainGUI(QMainWindow):
 
         # solvers dictionary
         self.solvers_dict = OrderedDict()
+        self.solvers_dict['Levenberg-Marquardt'] = SolverType.LM
         self.solvers_dict['Fast-Decoupled'] = SolverType.FASTDECOUPLED
         self.solvers_dict['Newton-Raphson'] = SolverType.NR
         # self.solvers_dict['NR Fast decoupled (BX)'] = SolverType.NRFD_BX
         # self.solvers_dict['NR Fast decoupled (XB)'] = SolverType.NRFD_XB
         self.solvers_dict['Newton-Raphson-Iwamoto'] = SolverType.IWAMOTO
-        self.solvers_dict['Levenberg-Marquardt'] = SolverType.LM
         # self.solvers_dict['Gauss-Seidel'] = SolverType.GAUSS
         # self.solvers_dict['Z-Matrix Gauss-Seidel'] = SolverType.ZBUS
         self.solvers_dict['Holomorphic embedding [HELM]'] = SolverType.HELM
@@ -185,10 +185,10 @@ class MainGUI(QMainWindow):
         # Automatic layout modes
         mdl = get_list_model(['spectral_layout',
                               'circular_layout',
-                               'random_layout',
-                               'shell_layout',
-                               'spring_layout',
-                               'fruchterman_reingold_layout'])
+                              'random_layout',
+                              'shell_layout',
+                              'spring_layout',
+                              'fruchterman_reingold_layout'])
         self.ui.automatic_layout_comboBox.setModel(mdl)
 
         ################################################################################################################
@@ -310,6 +310,7 @@ class MainGUI(QMainWindow):
 
         # list clicks
         self.ui.result_listView.clicked.connect(self.update_available_results_in_the_study)
+
         self.ui.result_type_listView.clicked.connect(self.result_type_click)
 
         self.ui.dataStructuresListView.clicked.connect(self.view_objects_data)
@@ -330,9 +331,11 @@ class MainGUI(QMainWindow):
                (1.05 / vmax, 'orange'),
                (1.2 / vmax, 'red')]
         self.voltage_cmap = LinearSegmentedColormap.from_list('vcolors', seq)
-        seq = [(0.0, 'green'),
-               (0.8, 'orange'),
-               (1.0, 'red')]
+        load_max = 1.5
+        seq = [(0.0 / load_max, 'gray'),
+               (0.5 / load_max, 'green'),
+               (1.0 / load_max, 'orange'),
+               (1.5 / load_max, 'red')]
         self.loading_cmap = LinearSegmentedColormap.from_list('lcolors', seq)
 
         ################################################################################################################
@@ -630,6 +633,11 @@ class MainGUI(QMainWindow):
                 self.ui.schematic_layout.addWidget(self.grid_editor)
                 self.ui.splitter_8.setStretchFactor(1, 15)
 
+                # clear the results
+                self.ui.resultsPlot.clear()
+                self.ui.resultsTableView.setModel(None)
+
+                # clear the simulation objects
                 self.power_flow = None
                 self.monte_carlo = None
                 self.time_series = None
@@ -651,7 +659,8 @@ class MainGUI(QMainWindow):
         files_types = "Excel (*.xlsx);;Excel 97 (*.xls);;DigSILENT (*.dgs);;MATPOWER (*.m)"
         # call dialog to select the file
 
-        filename, type_selected = QFileDialog.getOpenFileName(self, 'Open file', directory=self.project_directory,
+        filename, type_selected = QFileDialog.getOpenFileName(self, 'Open file',
+                                                              directory=self.project_directory,
                                                               filter=files_types)
 
         if len(filename) > 0:
