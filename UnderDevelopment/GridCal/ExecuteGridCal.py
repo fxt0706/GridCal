@@ -25,5 +25,6 @@ if __name__ == "__main__":
           "This program comes with ABSOLUTELY NO WARRANTY.\n" +
           "This is free software, and you are welcome to \n" +
           "redistribute it under certain conditions;\n" +
-          "See the license file for more details.\n\n")
+          "See the license file for more details.\n\n" +
+          "Forked by fxt0706")
     run()
