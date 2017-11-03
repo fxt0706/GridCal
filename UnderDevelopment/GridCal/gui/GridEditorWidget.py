@@ -110,7 +110,7 @@ class BranchGraphicItem(QGraphicsLineItem):
 
         self.api_object = branch
         if self.api_object is not None:
-            if self.api_object.is_enabled:
+            if self.api_object.active:
                 self.style = Qt.SolidLine
                 self.color = Qt.black
             else:
@@ -215,7 +215,7 @@ class BranchGraphicItem(QGraphicsLineItem):
 
         @return:
         """
-        if self.api_object.is_enabled:
+        if self.api_object.active:
             self.set_enable(False)
         else:
             self.set_enable(True)
@@ -226,9 +226,9 @@ class BranchGraphicItem(QGraphicsLineItem):
         @param val:
         @return:
         """
-        self.api_object.is_enabled = val
+        self.api_object.active = val
         if self.api_object is not None:
-            if self.api_object.is_enabled:
+            if self.api_object.active:
                 self.style = Qt.SolidLine
                 self.color = QtCore.Qt.black
             else:
@@ -885,7 +885,6 @@ class BatteryGraphicItem(QGraphicsItemGroup):
 
         self.diagramScene = diagramScene
 
-
         color = Qt.black
         pen = QPen(color, 2)
 
@@ -1008,10 +1007,17 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
         """
         super(BusGraphicItem, self).__init__(parent)
 
+<<<<<<< HEAD
         print("Message: create item in view GridEditorWidget Class BusGraphicItem line 1010")
 
         self.w = 65.0
         self.h = 65.0
+=======
+        self.min_w = 60.0
+        self.min_h = 60.0
+        self.h = self.min_h
+        self.w = self.min_w
+>>>>>>> upstream/master
 
         self.api_object = bus
 
@@ -1041,8 +1047,13 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
         self.label.setDefaultTextColor(QtCore.Qt.white)
 
         # Create corner for resize:
+<<<<<<< HEAD
         self.sizer = HandleItem(self)  # HandleItem set the point red
         self.sizer.setPos(self.w, self.h)
+=======
+        self.sizer = HandleItem(self)
+        self.sizer.setPos(self.min_w, self.min_h)
+>>>>>>> upstream/master
         self.sizer.posChangeCallbacks.append(self.change_size)  # Connect the callback
 
         self.sizer.setFlag(self.sizer.ItemIsSelectable, True)
@@ -1060,7 +1071,11 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
         self.terminals = self.upper_terminals + self.lower_terminals + self.right_terminals + self.left_terminals
 
         # Update size:
+<<<<<<< HEAD
         self.change_size(self.w, self.h) #set pos by change_size
+=======
+        self.change_size(self.min_w, self.min_h)
+>>>>>>> upstream/master
 
     def change_size(self, w, h):
         """
@@ -1070,6 +1085,7 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
         @return:
         """
         # Limit the block size to the minimum size:
+<<<<<<< HEAD
         if h > w:
             w = h
         else:
@@ -1080,7 +1096,16 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
         if w < self.w:
             w = self.w
         self.setRect(0.0, 0.0, w, h)
+=======
+        if h < self.min_h:
+            h = self.min_h
+        if w < self.min_w:
+            w = self.min_w
+>>>>>>> upstream/master
 
+        self.setRect(0.0, 0.0, w, h)
+        self.h = h
+        self.w = w
         offset = 10
 
         # center label:
@@ -1129,6 +1154,9 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
             term.setPos(x0, y0)
             # term.setPos(x0, y0 - h / 2 + offset / 2)
             y0 += dy
+
+        # rearrange children
+        self.arrange_children()
 
         return w, h
 
@@ -1243,10 +1271,10 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
         Toggle bus element state
         @return:
         """
-        self.api_object.is_enabled = not self.api_object.is_enabled
-        print('Enabled:', self.api_object.is_enabled)
+        self.api_object.active = not self.api_object.active
+        print('Enabled:', self.api_object.active)
 
-        if self.api_object.is_enabled:
+        if self.api_object.active:
 
             self.setBrush(QBrush(QtCore.Qt.black))
 
