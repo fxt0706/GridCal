@@ -7,7 +7,6 @@ import sys
 
 '''
 Dependencies:
-
 GridEditor
  |
   - EditorGraphicsView (Handles the drag and drop)
@@ -17,11 +16,15 @@ GridEditor
          - MultiCircuit (Calculation engine)
         |
          - Graphic Objects: (BusGraphicItem, BranchGraphicItem, LoadGraphicItem, ...)
-
-
 The graphic objects need to call the API objects and functions inside the MultiCircuit instance.
 To do this the graphic objects call "parent.circuit.<function or object>"
 '''
+
+# Declare colors
+ACTIVE = {'style': Qt.SolidLine, 'color': Qt.black}
+DEACTIVATED = {'style': Qt.DashLine, 'color': Qt.gray}
+EMERGENCY = {'style': Qt.SolidLine, 'color': QtCore.Qt.yellow}
+OTHER = ACTIVE = {'style': Qt.SolidLine, 'color': Qt.black}
 
 
 class LineUpdateMixin(object):
@@ -53,6 +56,13 @@ class QLine(LineUpdateMixin, QGraphicsLineItem):
 
 
 class GeneralItem(object):
+
+    def __init__(self):
+        self.color = ACTIVE['color']
+        self.width = 2
+        self.style = ACTIVE['style']
+        self.setBrush(QBrush(Qt.darkGray))
+        self.setPen(QPen(self.color, self.width, self.style))
 
     def editParameters(self):
         pd = ParameterDialog(self.window())
@@ -88,7 +98,6 @@ class GeneralItem(object):
 
     def remove_(self):
         """
-
         @return:
         """
         self.delete_all_connections()
@@ -101,7 +110,6 @@ class BranchGraphicItem(QGraphicsLineItem):
     """
     def __init__(self, fromPort, toPort, diagramScene, width=5, branch: Branch=None):
         """
-
         @param fromPort:
         @param toPort:
         @param diagramScene:
@@ -110,18 +118,18 @@ class BranchGraphicItem(QGraphicsLineItem):
 
         self.api_object = branch
         if self.api_object is not None:
-            if self.api_object.is_enabled:
-                self.style = Qt.SolidLine
-                self.color = Qt.black
+            if self.api_object.active:
+                self.style = ACTIVE['style']
+                self.color = ACTIVE['color']
             else:
-                self.style = Qt.DashLine
-                self.color = Qt.gray
+                self.style = DEACTIVATED['style']
+                self.color = DEACTIVATED['color']
         else:
-            self.style = Qt.SolidLine
-            self.color = Qt.black
+            self.style = OTHER['style']
+            self.color = OTHER['color']
         self.width = width
         self.pen_width = width
-        self.setPen(QPen(Qt.black, self.width, self.style))
+        self.setPen(QPen(self.color, self.width, self.style))
         self.setFlag(self.ItemIsSelectable, True)
         self.setCursor(QCursor(Qt.PointingHandCursor))
 
@@ -212,10 +220,9 @@ class BranchGraphicItem(QGraphicsLineItem):
 
     def enable_disable_toggle(self):
         """
-
         @return:
         """
-        if self.api_object.is_enabled:
+        if self.api_object.active:
             self.set_enable(False)
         else:
             self.set_enable(True)
@@ -226,17 +233,17 @@ class BranchGraphicItem(QGraphicsLineItem):
         @param val:
         @return:
         """
-        self.api_object.is_enabled = val
+        self.api_object.active = val
         if self.api_object is not None:
-            if self.api_object.is_enabled:
-                self.style = Qt.SolidLine
-                self.color = QtCore.Qt.black
+            if self.api_object.active:
+                self.style = ACTIVE['style']
+                self.color = ACTIVE['color']
             else:
-                self.style = Qt.DashLine
-                self.color = QtCore.Qt.gray
+                self.style = DEACTIVATED['style']
+                self.color = DEACTIVATED['color']
         else:
-            self.style = Qt.SolidLine
-            self.color = QtCore.Qt.black
+            self.style = OTHER['style']
+            self.color = OTHER['color']
         self.setPen(QPen(self.color, self.width, self.style))
 
     def setFromPort(self, fromPort):
@@ -311,7 +318,6 @@ class TerminalItem(QGraphicsEllipseItem):
 
     def __init__(self, name, editor=None, parent=None, h=10, w=10):
         """
-
         @param name:
         @param editor:
         @param parent:
@@ -320,7 +326,11 @@ class TerminalItem(QGraphicsEllipseItem):
         self.setCursor(QCursor(QtCore.Qt.CrossCursor))
 
         # Properties:
-        self.setBrush(QBrush(Qt.white))
+        self.color = ACTIVE['color']
+        self.width = 2
+        self.style = ACTIVE['style']
+        self.setBrush(Qt.darkGray)
+        self.setPen(QPen(self.color, self.width, self.style))
 
         # terminal parent object
         self.parent = parent
@@ -336,7 +346,6 @@ class TerminalItem(QGraphicsEllipseItem):
 
     def itemChange(self, change, value):
         """
-
         @param change:
         @param value:
         @return:
@@ -352,9 +361,7 @@ class TerminalItem(QGraphicsEllipseItem):
         Start a connection
         Args:
             event:
-
         Returns:
-
         """
         self.editor.startConnection(self)
         self.hosting_connections.append(self.editor.startedConnection)
@@ -363,7 +370,6 @@ class TerminalItem(QGraphicsEllipseItem):
         """
         Removes all the terminal connections
         Returns:
-
         """
         n = len(self.hosting_connections)
         for i in range(n-1, -1, -1):
@@ -377,20 +383,18 @@ class HandleItem(QGraphicsEllipseItem):
     """
     def __init__(self, parent=None):
         """
-
         @param parent:
         """
         QGraphicsEllipseItem.__init__(self, QRectF(-4, -4, 8, 8), parent)
         # super(HandleItem, self).__init__(QRectF(-4, -4, 8, 8), parent)
         self.posChangeCallbacks = []
-        self.setBrush(QBrush(Qt.red))
+        self.setBrush(Qt.red)
         self.setFlag(self.ItemIsMovable, True)
         self.setFlag(self.ItemSendsScenePositionChanges, True)
         self.setCursor(QCursor(Qt.SizeFDiagCursor))
 
     def itemChange(self, change, value):
         """
-
         @param change:
         @param value:
         @return:
@@ -414,12 +418,9 @@ class LoadGraphicItem(QGraphicsItemGroup):
 
     def __init__(self, parent, api_obj, diagramScene):
         """
-
         :param parent:
         :param api_obj:
         """
-        # QGraphicsPolygonItem.__init__(self, parent=parent)
-        # QGraphicsItemGroup.__init__(self, parent=parent)
         super(LoadGraphicItem, self).__init__(parent)
 
         self.w = 20.0
@@ -432,7 +433,6 @@ class LoadGraphicItem(QGraphicsItemGroup):
         self.diagramScene = diagramScene
 
         # Properties of the container:
-        # self.setBrush(QtGui.QBrush(QtCore.Qt.black))
         self.setFlags(self.ItemIsSelectable | self.ItemIsMovable)
         self.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
         # self.installSceneEventFilter(self)
@@ -441,10 +441,23 @@ class LoadGraphicItem(QGraphicsItemGroup):
         self.nexus = QGraphicsLineItem()
         parent.scene().addItem(self.nexus)
 
-        triangle = Polygon(self)
-        triangle.setPolygon(QPolygonF([QPointF(0, 0), QPointF(self.w, 0), QPointF(self.w/2, self.h)]))
-        triangle.setPen(QPen(Qt.black, 2))
-        self.addToGroup(triangle)
+        self.width = 2
+
+        if self.api_object is not None:
+            if self.api_object.active:
+                self.style = ACTIVE['style']
+                self.color = ACTIVE['color']
+            else:
+                self.style = DEACTIVATED['style']
+                self.color = DEACTIVATED['color']
+        else:
+            self.style = OTHER['style']
+            self.color = OTHER['color']
+
+        self.glyph = Polygon(self)
+        self.glyph.setPolygon(QPolygonF([QPointF(0, 0), QPointF(self.w, 0), QPointF(self.w / 2, self.h)]))
+        self.glyph.setPen(QPen(self.color, self.width, self.style))
+        self.addToGroup(self.glyph)
 
         self.setPos(self.parent.x(), self.parent.y() + 100)
         self.update_line(self.pos())
@@ -469,6 +482,9 @@ class LoadGraphicItem(QGraphicsItemGroup):
         da = menu.addAction('Delete')
         da.triggered.connect(self.remove)
 
+        pe = menu.addAction('Enable/Disable')
+        pe.triggered.connect(self.enable_disable_toggle)
+
         pa = menu.addAction('Plot profiles')
         pa.triggered.connect(self.plot)
 
@@ -482,6 +498,34 @@ class LoadGraphicItem(QGraphicsItemGroup):
         self.diagramScene.removeItem(self.nexus)
         self.diagramScene.removeItem(self)
         self.api_object.bus.loads.remove(self.api_object)
+
+    def enable_disable_toggle(self):
+        """
+        @return:
+        """
+        if self.api_object.active:
+            self.set_enable(False)
+        else:
+            self.set_enable(True)
+
+    def set_enable(self, val=True):
+        """
+        Set the enable value, graphically and in the API
+        @param val:
+        @return:
+        """
+        self.api_object.active = val
+        if self.api_object is not None:
+            if self.api_object.active:
+                self.style = ACTIVE['style']
+                self.color = ACTIVE['color']
+            else:
+                self.style = DEACTIVATED['style']
+                self.color = DEACTIVATED['color']
+        else:
+            self.style = OTHER['style']
+            self.color = OTHER['color']
+        self.glyph.setPen(QPen(self.color, self.width, self.style))
 
     def plot(self):
 
@@ -521,7 +565,6 @@ class ShuntGraphicItem(QGraphicsItemGroup):
 
     def __init__(self, parent, api_obj, diagramScene):
         """
-
         :param parent:
         :param api_obj:
         """
@@ -529,7 +572,7 @@ class ShuntGraphicItem(QGraphicsItemGroup):
         # QGraphicsItemGroup.__init__(self, parent=parent)
         super(ShuntGraphicItem, self).__init__(parent)
 
-        self.w = 10.0
+        self.w = 15.0
         self.h = 30.0
 
         self.parent = parent
@@ -538,10 +581,22 @@ class ShuntGraphicItem(QGraphicsItemGroup):
 
         self.diagramScene = diagramScene
 
-        pen = QPen(Qt.black, 2)
+        self.width = 2
+
+        if self.api_object is not None:
+            if self.api_object.active:
+                self.style = ACTIVE['style']
+                self.color = ACTIVE['color']
+            else:
+                self.style = DEACTIVATED['style']
+                self.color = DEACTIVATED['color']
+        else:
+            self.style = OTHER['style']
+            self.color = OTHER['color']
+
+        pen = QPen(self.color, self.width, self.style)
 
         # Properties of the container:
-        # self.setBrush(QtGui.QBrush(QtCore.Qt.black))
         self.setFlags(self.ItemIsSelectable | self.ItemIsMovable)
         self.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
         # self.installSceneEventFilter(self)
@@ -550,24 +605,19 @@ class ShuntGraphicItem(QGraphicsItemGroup):
         self.nexus = QGraphicsLineItem()
         parent.scene().addItem(self.nexus)
 
-        lines = list()
-        lines.append(QLineF(QPointF(self.w/2, 0), QPointF(self.w/2, self.h*0.4)))
-        lines.append(QLineF(QPointF(0, self.h*0.4), QPointF(self.w, self.h*0.4)))
-        lines.append(QLineF(QPointF(0, self.h*0.6), QPointF(self.w, self.h*0.6)))
-        lines.append(QLineF(QPointF(self.w/2, self.h*0.6), QPointF(self.w/2, self.h)))
-        lines.append(QLineF(QPointF(0, self.h * 1), QPointF(self.w, self.h * 1)))
-        lines.append(QLineF(QPointF(self.w*0.15, self.h * 1.1), QPointF(self.w*0.85, self.h * 1.1)))
-        lines.append(QLineF(QPointF(self.w * 0.3, self.h * 1.2), QPointF(self.w * 0.7, self.h * 1.2)))
-        for l in lines:
+        self.lines = list()
+        self.lines.append(QLineF(QPointF(self.w/2, 0), QPointF(self.w/2, self.h*0.4)))
+        self.lines.append(QLineF(QPointF(0, self.h*0.4), QPointF(self.w, self.h*0.4)))
+        self.lines.append(QLineF(QPointF(0, self.h*0.6), QPointF(self.w, self.h*0.6)))
+        self.lines.append(QLineF(QPointF(self.w/2, self.h*0.6), QPointF(self.w/2, self.h)))
+        self.lines.append(QLineF(QPointF(0, self.h * 1), QPointF(self.w, self.h * 1)))
+        self.lines.append(QLineF(QPointF(self.w*0.15, self.h * 1.1), QPointF(self.w*0.85, self.h * 1.1)))
+        self.lines.append(QLineF(QPointF(self.w * 0.3, self.h * 1.2), QPointF(self.w * 0.7, self.h * 1.2)))
+        for l in self.lines:
             l1 = QLine(self)
             l1.setLine(l)
             l1.setPen(pen)
             self.addToGroup(l1)
-
-        # line = QLine(self)
-        # line.setLine(QLineF(QPointF(self.w/2, 0), QPointF(self.w/2, self.h*0.4)))
-        # line.setPen(pen)
-        # self.addToGroup(line)
 
         self.setPos(self.parent.x(), self.parent.y() + 100)
         self.update_line(self.pos())
@@ -593,6 +643,9 @@ class ShuntGraphicItem(QGraphicsItemGroup):
         da = menu.addAction('Delete')
         da.triggered.connect(self.remove)
 
+        pe = menu.addAction('Enable/Disable')
+        pe.triggered.connect(self.enable_disable_toggle)
+
         pa = menu.addAction('Plot profile')
         pa.triggered.connect(self.plot)
 
@@ -606,6 +659,38 @@ class ShuntGraphicItem(QGraphicsItemGroup):
         self.diagramScene.removeItem(self.nexus)
         self.diagramScene.removeItem(self)
         self.api_object.bus.shunts.remove(self.api_object)
+
+    def enable_disable_toggle(self):
+        """
+        @return:
+        """
+        if self.api_object.active:
+            self.set_enable(False)
+        else:
+            self.set_enable(True)
+
+    def set_enable(self, val=True):
+        """
+        Set the enable value, graphically and in the API
+        @param val:
+        @return:
+        """
+        self.api_object.active = val
+        if self.api_object is not None:
+            if self.api_object.active:
+                self.style = ACTIVE['style']
+                self.color = ACTIVE['color']
+            else:
+                self.style = DEACTIVATED['style']
+                self.color = DEACTIVATED['color']
+        else:
+            self.style = OTHER['style']
+            self.color = OTHER['color']
+
+        pen = QPen(self.color, self.width, self.style)
+
+        for l in self.childItems():
+            l.setPen(pen)
 
     def plot(self):
         """
@@ -640,7 +725,6 @@ class ControlledGeneratorGraphicItem(QGraphicsItemGroup):
 
     def __init__(self, parent, api_obj, diagramScene):
         """
-
         :param parent:
         :param api_obj:
         """
@@ -658,14 +742,10 @@ class ControlledGeneratorGraphicItem(QGraphicsItemGroup):
 
         self.diagramScene = diagramScene
 
-        color = Qt.black
-        pen = QPen(color, 2)
-
         self.w = 40
         self.h = 40
 
         # Properties of the container:
-        # self.setBrush(QtGui.QBrush(QtCore.Qt.black))
         self.setFlags(self.ItemIsSelectable | self.ItemIsMovable)
         self.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
         # self.installSceneEventFilter(self)
@@ -674,18 +754,28 @@ class ControlledGeneratorGraphicItem(QGraphicsItemGroup):
         self.nexus = QGraphicsLineItem()
         parent.scene().addItem(self.nexus)
 
-        # l1 = QGraphicsLineItem(QLineF(QPointF(self.w/2, 0), QPointF(self.w/2, -10)))
-        # l1.setPen(pen)
-        # self.addToGroup(l1)
+        self.width = 2
+        if self.api_object is not None:
+            if self.api_object.active:
+                self.style = ACTIVE['style']
+                self.color = ACTIVE['color']
+            else:
+                self.style = DEACTIVATED['style']
+                self.color = DEACTIVATED['color']
+        else:
+            self.style = OTHER['style']
+            self.color = OTHER['color']
 
-        circle = Circle(self)
-        circle.setRect(0, 0, self.h, self.w)
-        circle.setPen(pen)
-        self.addToGroup(circle)
+        pen = QPen(self.color, self.width, self.style)
 
-        label = QGraphicsTextItem('G', parent=circle)
-        label.setDefaultTextColor(color)
-        label.setPos(self.h/4, self.w/4)
+        self.glyph = Circle(self)
+        self.glyph.setRect(0, 0, self.h, self.w)
+        self.glyph.setPen(pen)
+        self.addToGroup(self.glyph)
+
+        self.label = QGraphicsTextItem('G', parent=self.glyph)
+        self.label.setDefaultTextColor(self.color)
+        self.label.setPos(self.h/4, self.w/4)
 
         self.setPos(self.parent.x(), self.parent.y() + 100)
         self.update_line(self.pos())
@@ -710,6 +800,9 @@ class ControlledGeneratorGraphicItem(QGraphicsItemGroup):
         da = menu.addAction('Delete')
         da.triggered.connect(self.remove)
 
+        pe = menu.addAction('Enable/Disable')
+        pe.triggered.connect(self.enable_disable_toggle)
+
         pa = menu.addAction('Plot profiles')
         pa.triggered.connect(self.plot)
 
@@ -723,6 +816,35 @@ class ControlledGeneratorGraphicItem(QGraphicsItemGroup):
         self.diagramScene.removeItem(self.nexus)
         self.diagramScene.removeItem(self)
         self.api_object.bus.controlled_generators.remove(self.api_object)
+
+    def enable_disable_toggle(self):
+        """
+        @return:
+        """
+        if self.api_object.active:
+            self.set_enable(False)
+        else:
+            self.set_enable(True)
+
+    def set_enable(self, val=True):
+        """
+        Set the enable value, graphically and in the API
+        @param val:
+        @return:
+        """
+        self.api_object.active = val
+        if self.api_object is not None:
+            if self.api_object.active:
+                self.style = ACTIVE['style']
+                self.color = ACTIVE['color']
+            else:
+                self.style = DEACTIVATED['style']
+                self.color = DEACTIVATED['color']
+        else:
+            self.style = OTHER['style']
+            self.color = OTHER['color']
+        self.glyph.setPen(QPen(self.color, self.width, self.style))
+        self.label.setDefaultTextColor(self.color)
 
     def plot(self):
         """
@@ -760,7 +882,6 @@ class StaticGeneratorGraphicItem(QGraphicsItemGroup):
 
     def __init__(self, parent, api_obj, diagramScene):
         """
-
         :param parent:
         :param api_obj:
         """
@@ -774,14 +895,10 @@ class StaticGeneratorGraphicItem(QGraphicsItemGroup):
 
         self.diagramScene = diagramScene
 
-        color = Qt.black
-        pen = QPen(color, 2)
-
         self.w = 40
         self.h = 40
 
         # Properties of the container:
-        # self.setBrush(QtGui.QBrush(QtCore.Qt.black))
         self.setFlags(self.ItemIsSelectable | self.ItemIsMovable)
         self.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
 
@@ -793,14 +910,27 @@ class StaticGeneratorGraphicItem(QGraphicsItemGroup):
         # l1.setPen(pen)
         # self.addToGroup(l1)
 
-        square = Square(parent)
-        square.setRect(0, 0, self.h, self.w)
-        square.setPen(pen)
-        self.addToGroup(square)
+        self.width = 2
+        if self.api_object is not None:
+            if self.api_object.active:
+                self.style = ACTIVE['style']
+                self.color = ACTIVE['color']
+            else:
+                self.style = DEACTIVATED['style']
+                self.color = DEACTIVATED['color']
+        else:
+            self.style = OTHER['style']
+            self.color = OTHER['color']
+        pen = QPen(self.color, self.width, self.style)
 
-        label = QGraphicsTextItem('S', parent=square)
-        label.setDefaultTextColor(color)
-        label.setPos(self.h/4, self.w/4)
+        self.glyph = Square(parent)
+        self.glyph.setRect(0, 0, self.h, self.w)
+        self.glyph.setPen(pen)
+        self.addToGroup(self.glyph)
+
+        self.label = QGraphicsTextItem('S', parent=self.glyph)
+        self.label.setDefaultTextColor(self.color)
+        self.label.setPos(self.h/4, self.w/4)
 
         self.setPos(self.parent.x(), self.parent.y() + 100)
         self.update_line(self.pos())
@@ -825,6 +955,9 @@ class StaticGeneratorGraphicItem(QGraphicsItemGroup):
         da = menu.addAction('Delete')
         da.triggered.connect(self.remove)
 
+        pe = menu.addAction('Enable/Disable')
+        pe.triggered.connect(self.enable_disable_toggle)
+
         pa = menu.addAction('Plot profile')
         pa.triggered.connect(self.plot)
 
@@ -838,6 +971,35 @@ class StaticGeneratorGraphicItem(QGraphicsItemGroup):
         self.diagramScene.removeItem(self.nexus)
         self.diagramScene.removeItem(self)
         self.api_object.bus.static_generators.remove(self.api_object)
+
+    def enable_disable_toggle(self):
+        """
+        @return:
+        """
+        if self.api_object.active:
+            self.set_enable(False)
+        else:
+            self.set_enable(True)
+
+    def set_enable(self, val=True):
+        """
+        Set the enable value, graphically and in the API
+        @param val:
+        @return:
+        """
+        self.api_object.active = val
+        if self.api_object is not None:
+            if self.api_object.active:
+                self.style = ACTIVE['style']
+                self.color = ACTIVE['color']
+            else:
+                self.style = DEACTIVATED['style']
+                self.color = DEACTIVATED['color']
+        else:
+            self.style = OTHER['style']
+            self.color = OTHER['color']
+        self.glyph.setPen(QPen(self.color, self.width, self.style))
+        self.label.setDefaultTextColor(self.color)
 
     def plot(self):
         """
@@ -871,7 +1033,6 @@ class BatteryGraphicItem(QGraphicsItemGroup):
 
     def __init__(self, parent, api_obj, diagramScene):
         """
-
         :param parent:
         :param api_obj:
         """
@@ -885,15 +1046,10 @@ class BatteryGraphicItem(QGraphicsItemGroup):
 
         self.diagramScene = diagramScene
 
-
-        color = Qt.black
-        pen = QPen(color, 2)
-
         self.w = 40
         self.h = 40
 
         # Properties of the container:
-        # self.setBrush(QtGui.QBrush(QtCore.Qt.black))
         self.setFlags(self.ItemIsSelectable | self.ItemIsMovable)
         self.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
 
@@ -901,18 +1057,27 @@ class BatteryGraphicItem(QGraphicsItemGroup):
         self.nexus = QGraphicsLineItem()
         parent.scene().addItem(self.nexus)
 
-        # l1 = QGraphicsLineItem(QLineF(QPointF(self.w/2, 0), QPointF(self.w/2, -10)))
-        # l1.setPen(pen)
-        # self.addToGroup(l1)
+        self.width = 2
+        if self.api_object is not None:
+            if self.api_object.active:
+                self.style = ACTIVE['style']
+                self.color = ACTIVE['color']
+            else:
+                self.style = DEACTIVATED['style']
+                self.color = DEACTIVATED['color']
+        else:
+            self.style = OTHER['style']
+            self.color = OTHER['color']
+        pen = QPen(self.color, self.width, self.style)
 
-        square = Square(self)
-        square.setRect(0, 0, self.h, self.w)
-        square.setPen(pen)
-        self.addToGroup(square)
+        self.glyph = Square(self)
+        self.glyph.setRect(0, 0, self.h, self.w)
+        self.glyph.setPen(pen)
+        self.addToGroup(self.glyph)
 
-        label = QGraphicsTextItem('B', parent=square)
-        label.setDefaultTextColor(color)
-        label.setPos(self.h/4, self.w/4)
+        self.label = QGraphicsTextItem('B', parent=self.glyph)
+        self.label.setDefaultTextColor(self.color)
+        self.label.setPos(self.h/4, self.w/4)
 
         self.setPos(self.parent.x(), self.parent.y() + 100)
         self.update_line(self.pos())
@@ -937,6 +1102,9 @@ class BatteryGraphicItem(QGraphicsItemGroup):
         da = menu.addAction('Delete')
         da.triggered.connect(self.remove)
 
+        pe = menu.addAction('Enable/Disable')
+        pe.triggered.connect(self.enable_disable_toggle)
+
         pa = menu.addAction('Plot profiles')
         pa.triggered.connect(self.plot)
 
@@ -950,6 +1118,36 @@ class BatteryGraphicItem(QGraphicsItemGroup):
         self.diagramScene.removeItem(self.nexus)
         self.diagramScene.removeItem(self)
         self.api_object.bus.batteries.remove(self.api_object)
+
+    def enable_disable_toggle(self):
+        """
+        @return:
+        """
+        if self.api_object.active:
+            self.set_enable(False)
+        else:
+            self.set_enable(True)
+
+    def set_enable(self, val=True):
+        """
+        Set the enable value, graphically and in the API
+        @param val:
+        @return:
+        """
+        self.api_object.active = val
+        if self.api_object is not None:
+            if self.api_object.active:
+                self.style = ACTIVE['style']
+                self.color = ACTIVE['color']
+            else:
+                self.style = DEACTIVATED['style']
+                self.color = DEACTIVATED['color']
+        else:
+            self.style = OTHER['style']
+            self.color = OTHER['color']
+        self.glyph.setPen(QPen(self.color, self.width, self.style))
+        self.label.setDefaultTextColor(self.color)
+
 
     def plot(self):
         """
@@ -985,13 +1183,11 @@ class BatteryGraphicItem(QGraphicsItemGroup):
         self.diagramScene.parent().object_editor_table.setModel(mdl)
 
 
-class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
+class BusGraphicItem(QGraphicsRectItem, GeneralItem):
     """
-      Replace QGraphicsEllipseItem to QGraphicsRectItem to change Ellipse
       Represents a block in the diagram
       Has an x and y and width and height
       width and height can only be adjusted with a tip in the lower right corner.
-
       - in and output ports
       - parameters
       - description
@@ -999,7 +1195,6 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
     def __init__(self, diagramScene, name='Untitled', parent=None, index=0, editor=None,
                  bus: Bus=None, pos: QPoint=None):
         """
-
         @param diagramScene:
         @param name:
         @param parent:
@@ -1008,10 +1203,10 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
         """
         super(BusGraphicItem, self).__init__(parent)
 
-        print("Message: create item in view GridEditorWidget Class BusGraphicItem line 1010")
-
-        self.w = 65.0
-        self.h = 65.0
+        self.min_w = 60.0
+        self.min_h = 60.0
+        self.h = self.min_h
+        self.w = self.min_w
 
         self.api_object = bus
 
@@ -1025,8 +1220,11 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
         self.sc_enabled = False
         self.pen_width = 4
         # Properties of the rectangle:
-        self.setPen(QPen(QtCore.Qt.black, self.pen_width))
-        self.setBrush(QBrush(QtCore.Qt.white))
+        self.color = ACTIVE['color']
+        self.style = ACTIVE['style']
+        self.setBrush(QBrush(Qt.darkGray))
+        self.setPen(QPen(self.color, self.pen_width, self.style))
+        self.setBrush(self.color)
         self.setFlags(self.ItemIsSelectable | self.ItemIsMovable)
         self.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
 
@@ -1041,8 +1239,8 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
         self.label.setDefaultTextColor(QtCore.Qt.white)
 
         # Create corner for resize:
-        self.sizer = HandleItem(self)  # HandleItem set the point red
-        self.sizer.setPos(self.w, self.h)
+        self.sizer = HandleItem(self)
+        self.sizer.setPos(self.min_w, self.min_h)
         self.sizer.posChangeCallbacks.append(self.change_size)  # Connect the callback
 
         self.sizer.setFlag(self.sizer.ItemIsSelectable, True)
@@ -1060,7 +1258,7 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
         self.terminals = self.upper_terminals + self.lower_terminals + self.right_terminals + self.left_terminals
 
         # Update size:
-        self.change_size(self.w, self.h) #set pos by change_size
+        self.change_size(self.min_w, self.min_h)
 
     def change_size(self, w, h):
         """
@@ -1070,17 +1268,14 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
         @return:
         """
         # Limit the block size to the minimum size:
-        if h > w:
-            w = h
-        else:
-            h = w
+        if h < self.min_h:
+            h = self.min_h
+        if w < self.min_w:
+            w = self.min_w
 
-        if h < self.h:
-            h = self.h
-        if w < self.w:
-            w = self.w
         self.setRect(0.0, 0.0, w, h)
-
+        self.h = h
+        self.w = w
         offset = 10
 
         # center label:
@@ -1129,6 +1324,9 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
             term.setPos(x0, y0)
             # term.setPos(x0, y0 - h / 2 + offset / 2)
             y0 += dy
+
+        # rearrange children
+        self.arrange_children()
 
         return w, h
 
@@ -1243,18 +1441,18 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
         Toggle bus element state
         @return:
         """
-        self.api_object.is_enabled = not self.api_object.is_enabled
-        print('Enabled:', self.api_object.is_enabled)
+        self.api_object.active = not self.api_object.active
+        print('Enabled:', self.api_object.active)
 
-        if self.api_object.is_enabled:
+        if self.api_object.active:
 
-            self.setBrush(QBrush(QtCore.Qt.black))
+            self.setBrush(QBrush(ACTIVE['color']))
 
             for term in self.terminals:
                 for host in term.hosting_connections:
                     host.set_enable(val=True)
         else:
-            self.setBrush(QBrush(QtCore.Qt.gray))
+            self.setBrush(QBrush(DEACTIVATED['color']))
 
             for term in self.terminals:
                 for host in term.hosting_connections:
@@ -1262,21 +1460,18 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
 
     def enable_disable_sc(self):
         """
-
         Returns:
-
         """
         if self.sc_enabled is True:
-            self.setPen(QPen(QColor(QtCore.Qt.black), self.pen_width))
+            self.setPen(QPen(QColor(ACTIVE['color']), self.pen_width))
             self.sc_enabled = False
 
         else:
             self.sc_enabled = True
-            self.setPen(QPen(QColor(QtCore.Qt.yellow), self.pen_width))
+            self.setPen(QPen(QColor(EMERGENCY['color']), self.pen_width))
 
     def plot_profiles(self):
         """
-
         @return:
         """
         # t = self.diagramScene.circuit.master_time_array
@@ -1313,9 +1508,7 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
 
     def add_load(self, api_obj=None):
         """
-
         Returns:
-
         """
         if api_obj is None or type(api_obj) is bool:
             api_obj = self.diagramScene.circuit.add_load(self.api_object)
@@ -1327,9 +1520,7 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
 
     def add_shunt(self, api_obj=None):
         """
-
         Returns:
-
         """
         if api_obj is None or type(api_obj) is bool:
             api_obj = self.diagramScene.circuit.add_shunt(self.api_object)
@@ -1341,9 +1532,7 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
 
     def add_controlled_generator(self, api_obj=None):
         """
-
         Returns:
-
         """
         if api_obj is None or type(api_obj) is bool:
             api_obj = self.diagramScene.circuit.add_controlled_generator(self.api_object)
@@ -1355,9 +1544,7 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
 
     def add_static_generator(self, api_obj=None):
         """
-
         Returns:
-
         """
         if api_obj is None or type(api_obj) is bool:
             api_obj = self.diagramScene.circuit.add_static_generator(self.api_object)
@@ -1369,9 +1556,7 @@ class BusGraphicItem(QGraphicsEllipseItem, GeneralItem):
 
     def add_battery(self, api_obj=None):
         """
-
         Returns:
-
         """
         if api_obj is None or type(api_obj) is bool:
             api_obj = self.diagramScene.circuit.add_battery(self.api_object)
@@ -1388,7 +1573,6 @@ class EditorGraphicsView(QGraphicsView):
     """
     def __init__(self, scene, parent=None, editor=None):
         """
-
         @param scene: DiagramScene object
         @param parent:
         @param editor:
@@ -1408,12 +1592,9 @@ class EditorGraphicsView(QGraphicsView):
 
     def dragEnterEvent(self, event):
         """
-
         @param event:
         @return:
         """
-        print("dragEnterEvent GirdEditorWidget line 1407")
-        print(self)
         if event.mimeData().hasFormat('component/name'):
             event.accept()
 
@@ -1423,7 +1604,6 @@ class EditorGraphicsView(QGraphicsView):
         @param event:
         @return:
         """
-
         if event.mimeData().hasFormat('component/name'):
             event.accept()
 
@@ -1433,7 +1613,6 @@ class EditorGraphicsView(QGraphicsView):
         @param event:
         @return:
         """
-
         if event.mimeData().hasFormat('component/name'):
             objtype = event.mimeData().data('component/name')
             # name = str(objtype)
@@ -1445,11 +1624,10 @@ class EditorGraphicsView(QGraphicsView):
             stream = QDataStream(data, QIODevice.WriteOnly)
             stream.writeQString('Bus')
             if objtype == data:
-                print("Message: create new bus in dropEvent GridEditorWidget Class EditorGraphicsView")
                 name = 'Bus ' + str(self.last_n)
                 self.last_n += 1
                 obj = Bus(name=name)
-                elm = BusGraphicItem(diagramScene=self.scene(), name=name, editor=self.editor, bus=obj) #BusGraphicItem set the item
+                elm = BusGraphicItem(diagramScene=self.scene(), name=name, editor=self.editor, bus=obj)
                 obj.graphic_obj = elm
                 self.scene_.circuit.add_bus(obj)  # weird but only way to have graphical-API communication
 
@@ -1491,21 +1669,18 @@ class LibraryModel(QStandardItemModel):
     """
     def __init__(self, parent=None):
         """
-
         @param parent:
         """
         QStandardItemModel.__init__(self, parent)
 
     def mimeTypes(self):
         """
-
         @return:
         """
         return ['component/name']
 
     def mimeData(self, idxs):
         """
-
         @param idxs:
         @return:
         """
@@ -1526,7 +1701,6 @@ class DiagramScene(QGraphicsScene):
 
     def __init__(self, parent=None, circuit: MultiCircuit=None):
         """
-
         @param parent:
         """
         super(DiagramScene, self).__init__(parent)
@@ -1536,7 +1710,6 @@ class DiagramScene(QGraphicsScene):
 
     def mouseMoveEvent(self, mouseEvent):
         """
-
         @param mouseEvent:
         @return:
         """
@@ -1545,7 +1718,6 @@ class DiagramScene(QGraphicsScene):
 
     def mouseReleaseEvent(self, mouseEvent):
         """
-
         @param mouseEvent:
         @return:
         """
@@ -1557,37 +1729,32 @@ class ObjectFactory(object):
 
     def get_box(self):
         """
-
         @return:
         """
-        print("get_box draw the icon GridEditorWIdget Class ObjectFactory line 1556")
         pixmap = QPixmap(40, 40)
         pixmap.fill()
         painter = QPainter(pixmap)
         painter.fillRect(0, 0, 40, 40, Qt.black)
-        # painter.setBrush(Qt.black)
-        # painter.drawEllipse(5, 5, 30, 30)
-        # painter.setBrush(Qt.white)
-        # painter.drawEllipse(8 ,8, 24, 24)
+        # painter.setBrush(Qt.red)
+        # painter.drawEllipse(36, 2, 20, 20)
         # painter.setBrush(Qt.yellow)
-        #painter.drawEllipse(20, 20, 20, 20)
+        # painter.drawEllipse(20, 20, 20, 20)
         painter.end()
 
         return QIcon(pixmap)
 
     def get_circle(self):
         """
-
         @return:
         """
-        print("get_circle draw the icon GridEditorWIdget Class ObjectFactory line 1556")
         pixmap = QPixmap(40, 40)
         pixmap.fill()
         painter = QPainter(pixmap)
-        painter.setBrush(Qt.black)
-        painter.drawEllipse(5, 5, 30, 30)
-        painter.setBrush(Qt.white)
-        painter.drawEllipse(8, 8, 24, 24)
+        # painter.fillRect(10, 10, 80, 80, Qt.black)
+        painter.setBrush(Qt.red)
+        painter.drawEllipse(0, 0, 40, 40)
+        # painter.setBrush(Qt.yellow)
+        # painter.drawEllipse(20, 20, 20, 20)
         painter.end()
 
         return QIcon(pixmap)
@@ -1623,8 +1790,7 @@ class GridEditor(QSplitter):
 
         # initialize library of items
         self.libItems = list()
-        self.libItems.append(QStandardItem(object_factory.get_circle(), 'Bus'))
-        print("create bus icon GridEditorWidget line 1617")
+        self.libItems.append(QStandardItem(object_factory.get_box(), 'Bus'))
         for i in self.libItems:
             self.libraryModel.appendRow(i)
 
@@ -1640,7 +1806,6 @@ class GridEditor(QSplitter):
         # create all the schematic objects and replace the existing ones
         self.diagramScene = DiagramScene(self, circuit)  # scene to add to the QGraphicsView
         self.diagramView = EditorGraphicsView(self.diagramScene, parent=self, editor=self)
-        print("diagramView GridEditorWidget Class GridEditor line 1636")
 
         # create the grid name editor
         self.frame1 = QFrame()
@@ -1685,7 +1850,6 @@ class GridEditor(QSplitter):
 
     def sceneMouseMoveEvent(self, event):
         """
-
         @param event:
         @return:
         """
@@ -1740,16 +1904,34 @@ class GridEditor(QSplitter):
         min_y = sys.maxsize
         max_x = -sys.maxsize
         max_y = -sys.maxsize
-        for item in self.diagramScene.items():
-            if type(item) is BusGraphicItem:
-                x = item.pos().x() * self.expand_factor
-                y = item.pos().y() * self.expand_factor
-                item.setPos(QPointF(x, y))
 
-                max_x = max(max_x, x)
-                min_x = min(min_x, x)
-                max_y = max(max_y, y)
-                min_y = min(min_y, y)
+        if len(self.diagramScene.selectedItems()) > 0:
+
+            # expand selection
+            for item in self.diagramScene.selectedItems():
+                if type(item) is BusGraphicItem:
+                    x = item.pos().x() * self.expand_factor
+                    y = item.pos().y() * self.expand_factor
+                    item.setPos(QPointF(x, y))
+
+                    max_x = max(max_x, x)
+                    min_x = min(min_x, x)
+                    max_y = max(max_y, y)
+                    min_y = min(min_y, y)
+
+        else:
+
+            # expand all
+            for item in self.diagramScene.items():
+                if type(item) is BusGraphicItem:
+                    x = item.pos().x() * self.expand_factor
+                    y = item.pos().y() * self.expand_factor
+                    item.setPos(QPointF(x, y))
+
+                    max_x = max(max_x, x)
+                    min_x = min(min_x, x)
+                    max_y = max(max_y, y)
+                    min_y = min(min_y, y)
 
         print('(', min_x, min_y, ')(', max_x, max_y, ')')
 
@@ -1766,16 +1948,33 @@ class GridEditor(QSplitter):
         min_y = sys.maxsize
         max_x = -sys.maxsize
         max_y = -sys.maxsize
-        for item in self.diagramScene.items():
-            if type(item) is BusGraphicItem:
-                x = item.pos().x() / self.expand_factor
-                y = item.pos().y() / self.expand_factor
-                item.setPos(QPointF(x, y))
 
-                max_x = max(max_x, x)
-                min_x = min(min_x, x)
-                max_y = max(max_y, y)
-                min_y = min(min_y, y)
+        if len(self.diagramScene.selectedItems()) > 0:
+
+            # shrink selection only
+            for item in self.diagramScene.selectedItems():
+                if type(item) is BusGraphicItem:
+                    x = item.pos().x() / self.expand_factor
+                    y = item.pos().y() / self.expand_factor
+                    item.setPos(QPointF(x, y))
+
+                    max_x = max(max_x, x)
+                    min_x = min(min_x, x)
+                    max_y = max(max_y, y)
+                    min_y = min(min_y, y)
+        else:
+
+            # shrink all
+            for item in self.diagramScene.items():
+                if type(item) is BusGraphicItem:
+                    x = item.pos().x() / self.expand_factor
+                    y = item.pos().y() / self.expand_factor
+                    item.setPos(QPointF(x, y))
+
+                    max_x = max(max_x, x)
+                    min_x = min(min_x, x)
+                    max_y = max(max_y, y)
+                    min_y = min(min_y, y)
 
         print('(', min_x, min_y, ')(', max_x, max_y, ')')
 
@@ -1794,16 +1993,25 @@ class GridEditor(QSplitter):
     def auto_layout(self):
         """
         Automatic layout of the nodes
-        Returns:
-
         """
 
         if self.circuit.graph is None:
             self.circuit.compile()
 
-        pos = nx.spring_layout(self.circuit.graph, scale=2)
+        pos = nx.spectral_layout(self.circuit.graph, scale=2, weight='weight')
 
-        self.circuit.buses
+        pos = nx.fruchterman_reingold_layout(self.circuit.graph, dim=2, k=None, pos=pos, fixed=None, iterations=500,
+                                             weight='weight', scale=20.0, center=None)
+
+        # assign the positions to the graphical objects of the nodes
+        for i, bus in enumerate(self.circuit.buses):
+            try:
+                x, y = pos[i] * 500
+                bus.graphic_obj.setPos(QPoint(x, y))
+            except KeyError as ex:
+                warn('Node ' + str(i) + ' not in graph!!!! \n' + str(ex))
+
+        self.center_nodes()
 
     def export(self, filename):
         """
